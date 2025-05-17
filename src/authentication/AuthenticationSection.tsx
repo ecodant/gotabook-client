@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@radix-ui/react-tabs";
 import {
   Card,
@@ -11,10 +11,10 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "../ui/card";
-import { Label } from "../ui/label";
-import { Input } from "../ui/input";
-import { TabsList, TabsTrigger } from "../ui/tabs";
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { UserLoginInput, UserRegisterInput } from "@/lib/types";
 import { z } from "zod";
@@ -117,8 +117,8 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen">
-      <Tabs defaultValue="login" className="w-full max-w-md mx-4">
+    <div className="flex justify-center items-center h-screen">
+      <Tabs defaultValue="login" className="w-1/2 max-w-md mx-4">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="login">Login</TabsTrigger>
           <TabsTrigger value="register">Register</TabsTrigger>
@@ -126,7 +126,7 @@ export default function AuthPage() {
 
         <TabsContent value="login">
           <Card>
-            <CardHeader>
+            <CardHeader className="">
               <CardTitle>Library Login</CardTitle>
               <CardDescription>
                 Enter your credentials to access your account

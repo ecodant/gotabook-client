@@ -11,7 +11,10 @@ export const loanService = {
     const response = await api.put(`/api/loans/${id}/return`);
     return response.data;
   },
-
+  getAllLoans: async (): Promise<Loan[]> => {
+    const response = await api.get(`/api/loans/`);
+    return response.data;
+  },
   getUserLoans: async (userId: string): Promise<Loan[]> => {
     const response = await api.get(`/api/loans/user/${userId}`);
     return response.data;

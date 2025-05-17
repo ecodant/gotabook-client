@@ -2,7 +2,7 @@
 
 ### Overview
 
-This repository contains the frontend code for the Digital Interactive Library project. This platform aims to provide a rich digital library experience with user interaction, book management, and personalized reader recommendations.
+This repository contains the frontend code for the Digital Library project. This platform aims to provide a rich digital library experience with user interaction, book management, and personalized reader recommendations.
 
 ### Technologies Used
 

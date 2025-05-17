@@ -3,7 +3,7 @@ import api from "./api";
 
 export const bookService = {
   getAllBooks: async (): Promise<Book[]> => {
-    const response = await api.get("/api/books");
+    const response = await api.get("/api/books/");
     return response.data;
   },
 

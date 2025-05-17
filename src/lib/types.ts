@@ -5,7 +5,6 @@ const BaseSchema = z.object({
   _id: z.string(), // ObjectId represented as string
 });
 
-// ==================== USER ====================
 export const UserSchema = BaseSchema.extend({
   username: z.string(),
   email: z.string().email(),
@@ -49,7 +48,7 @@ export const LoanSchema = BaseSchema.extend({
   userId: z.string(),
   loanDate: z.coerce.date(),
   returnDate: z.coerce.date().optional(),
-  status: z.enum(["BORROWED", "RETURNED"]),
+  status: z.enum(["BORROWED", "RETURNED", "WAITING"]),
 });
 
 export type Loan = z.infer<typeof LoanSchema>;

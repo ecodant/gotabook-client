@@ -8,15 +8,15 @@ import api from "./api";
 
 export const userService = {
   login: async (credentials: UserLoginInput): Promise<User> => {
-    const response = await api.post("/users/login", credentials);
+    const response = await api.post("api/users/login", credentials);
     return response.data;
   },
   register: async (userData: UserRegisterInput): Promise<User> => {
-    const response = await api.post("/users/register", userData);
+    const response = await api.post("api/users/register", userData);
     return response.data;
   },
   getUserById: async (id: string): Promise<User> => {
-    const response = await api.get(`/users/${id}`);
+    const response = await api.get(`api/users/${id}`);
     return response.data;
   },
 
