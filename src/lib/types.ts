@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // Base schema with common fields
 const BaseSchema = z.object({
-  _id: z.string(), // ObjectId represented as string
+  id: z.string(), // ObjectId represented as string
 });
 
 export const UserSchema = BaseSchema.extend({
@@ -21,9 +21,9 @@ export type UserLoginInput = {
   password: string;
 };
 
-export type UserRegisterInput = Omit<User, "_id" | "registrationDate">;
+export type UserRegisterInput = Omit<User, "id" | "registrationDate">;
 export type UserUpdateInput = Partial<
-  Omit<User, "_id" | "registrationDate" | "role">
+  Omit<User, "id" | "registrationDate" | "role">
 >;
 
 // ==================== BOOK ====================
@@ -33,14 +33,14 @@ export const BookSchema = BaseSchema.extend({
   year: z.number().int().positive(),
   category: z.string(),
   status: z.enum(["AVAILABLE", "BORROWED"]),
-  averageRating: z.number().min(0).max(5).optional(),
+  averageRating: z.number().min(0).max(5),
 });
 
 export type Book = z.infer<typeof BookSchema>;
 
 // Input types for Book operations
-export type BookCreateInput = Omit<Book, "_id" | "averageRating">;
-export type BookUpdateInput = Partial<Omit<Book, "_id" | "averageRating">>;
+export type BookCreateInput = Omit<Book, "id" | "averageRating">;
+export type BookUpdateInput = Partial<Omit<Book, "id" | "averageRating">>;
 
 // ==================== LOAN ====================
 export const LoanSchema = BaseSchema.extend({

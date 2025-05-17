@@ -19,7 +19,10 @@ export const userService = {
     const response = await api.get(`api/users/${id}`);
     return response.data;
   },
-
+  getAllUsers: async (): Promise<User> => {
+    const response = await api.get(`api/users/`);
+    return response.data;
+  },
   updateUser: async (
     id: string,
     userData: Partial<UserUpdateInput>

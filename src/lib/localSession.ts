@@ -1,30 +1,21 @@
-import { Seller } from "./types";
+import { User } from "./types";
 
-export const dummySeller: Seller = {
-  id: "seller1",
-  name: "001",
-  email: "johndoe@example.com",
-  password: "password123",
-  lastName: "Doe",
-  license: "1234567890",
-  address: "123 Main St",
-  profileImg: "https://example.com/profile.jpg",
-  reviews: [],
-  contacts: [],
-  notifications: [],
-  products: [],
-  chats: [],
-  contactRequests: [],
+export const dummyUser: User = {
+  id: "6826c12a7eee3f0bd04564517",
+  username: "NNN",
+  email: "test0@test.com",
+  password: "uni123",
+  role: "READER",
+  registrationDate: new Date("2025-05-16T04:38:02.805+00:00"),
 };
 
-export const storeSellerToLocalStorage = (seller: Seller) => {
+export const storeSellerToLocalStorage = (seller: User) => {
   localStorage.setItem("loggedInSeller", JSON.stringify(seller));
 };
 
-export const getLocalSeller = (): Seller => {
-  const sellerString = localStorage.getItem("loggedInSeller");
-  if (sellerString) {
-    console.log("verdad");
-    return JSON.parse(sellerString);
-  } else return dummySeller;
+export const getLocalSeller = (): User => {
+  const userString = localStorage.getItem("currentUser");
+  if (userString) {
+    return JSON.parse(userString);
+  } else return dummyUser;
 };

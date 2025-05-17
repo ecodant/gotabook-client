@@ -18,6 +18,7 @@ import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { UserLoginInput, UserRegisterInput } from "@/lib/types";
 import { z } from "zod";
+import { userService } from "@/services/userService";
 
 // Define form schemas
 const LoginSchema = z.object({
@@ -42,7 +43,7 @@ type RegisterFormValues = z.infer<typeof RegisterSchema>;
 
 export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const { login, register } = useAuth();
+  const { handleLoginUser } = useAuth();
   const navigate = useNavigate();
 
   const loginForm = useForm<LoginFormValues>({
@@ -73,7 +74,7 @@ export default function AuthPage() {
         password: data.password,
       };
 
-      const user = await login(loginInput);
+      const user = await handleLoginUser(loginInput);
       if (user) {
         loginForm.reset();
         navigate("/dashboard");
@@ -100,7 +101,7 @@ export default function AuthPage() {
         role: "READER", // Default role for new users
       };
 
-      const user = await register(registerInput);
+      const user = await userService.register(registerInput);
       if (user) {
         registerForm.reset();
         navigate("/dashboard");

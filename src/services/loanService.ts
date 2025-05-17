@@ -3,7 +3,7 @@ import api from "./api";
 
 export const loanService = {
   requestLoan: async (loanData: LoanCreateInput): Promise<Loan> => {
-    const response = await api.post("/api/loans", loanData);
+    const response = await api.post("/api/loans/", loanData);
     return response.data;
   },
 
