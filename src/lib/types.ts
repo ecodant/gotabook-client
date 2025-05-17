@@ -46,9 +46,10 @@ export type BookUpdateInput = Partial<Omit<Book, "id" | "averageRating">>;
 export const LoanSchema = BaseSchema.extend({
   bookId: z.string(),
   userId: z.string(),
+  bookTitle: z.string(),
   loanDate: z.coerce.date(),
   returnDate: z.coerce.date().optional(),
-  status: z.enum(["BORROWED", "RETURNED", "WAITING"]),
+  status: z.enum(["ACTIVE", "RETURNED", "WAITING"]),
 });
 
 export type Loan = z.infer<typeof LoanSchema>;
@@ -57,9 +58,12 @@ export type Loan = z.infer<typeof LoanSchema>;
 export type LoanCreateInput = {
   bookId: string;
   userId: string;
+  bookTitle: string;
 };
 
-export type LoanUpdateInput = Partial<Pick<Loan, "returnDate" | "status">>;
+export type LoanUpdateInput = Partial<
+  Pick<Loan, "returnDate" | "status" | "bookTitle">
+>;
 
 // ==================== RATING ====================
 export const RatingSchema = BaseSchema.extend({
