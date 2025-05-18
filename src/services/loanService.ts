@@ -15,6 +15,10 @@ export const loanService = {
     const response = await api.get(`/api/loans/`);
     return response.data;
   },
+  getLoanQueue: async (bookId: string): Promise<Loan[]> => {
+    const response = await api.get(`/api/loans/queue/${bookId}`);
+    return response.data;
+  },
   getUserLoans: async (userId: string): Promise<Loan[]> => {
     const response = await api.get(`/api/loans/user/${userId}`);
     return response.data;

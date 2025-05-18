@@ -43,7 +43,7 @@ type RegisterFormValues = z.infer<typeof RegisterSchema>;
 
 export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const { handleLoginUser } = useAuth();
+  const { handleLoginUser, setCurrentUser } = useAuth();
   const navigate = useNavigate();
 
   const loginForm = useForm<LoginFormValues>({
@@ -104,6 +104,8 @@ export default function AuthPage() {
       const user = await userService.register(registerInput);
       if (user) {
         registerForm.reset();
+        setCurrentUser(user);
+        localStorage.setItem("currentUser", JSON.stringify(user));
         navigate("/dashboard");
       }
     } catch (error) {

@@ -24,13 +24,13 @@ export function RatingSystem() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!currentUser?._id) return;
+      if (!currentUser?.id) return;
 
       try {
         setIsLoading(true);
 
         // Fetch user's ratings with books
-        const ratings = await ratingService.getRatingsByUserId(currentUser._id);
+        const ratings = await ratingService.getRatingsByUserId(currentUser.id);
         const ratingsWithBooks = await Promise.all(
           ratings.map(async (rating) => {
             try {
@@ -44,7 +44,7 @@ export function RatingSystem() {
         setUserRatings(ratingsWithBooks);
 
         // Fetch books available for rating
-        const loans = await loanService.getUserLoans(currentUser._id);
+        const loans = await loanService.getUserLoans(currentUser.id);
         const returnedLoans = loans.filter(
           (loan: Loan) => loan.status === "RETURNED"
         );
@@ -58,7 +58,7 @@ export function RatingSystem() {
 
         const unratedBooks = books.filter(
           (book): book is Book =>
-            book !== null && !ratings.some((r) => r.bookId === book._id)
+            book !== null && !ratings.some((r) => r.bookId === book.id)
         );
         setBooksToRate(unratedBooks);
       } catch (error) {
@@ -72,15 +72,15 @@ export function RatingSystem() {
   }, [currentUser]);
 
   const handleSubmitRating = async () => {
-    if (!selectedBook || ratingValue === 0 || !currentUser?._id) {
+    if (!selectedBook || ratingValue === 0 || !currentUser?.id) {
       alert("Please select a book and provide a rating");
       return;
     }
 
     try {
       const newRating = await ratingService.createRating({
-        bookId: selectedBook._id,
-        userId: currentUser._id,
+        bookId: selectedBook.id,
+        userId: currentUser.id,
         rating: ratingValue,
         comment: comment || undefined,
       });
@@ -96,7 +96,7 @@ export function RatingSystem() {
 
       // Remove the book from booksToRate
       setBooksToRate((prev) =>
-        prev.filter((book) => book._id !== selectedBook._id)
+        prev.filter((book) => book.id !== selectedBook.id)
       );
 
       // Reset form
@@ -125,7 +125,7 @@ export function RatingSystem() {
       // Update rating locally
       setUserRatings((prev) =>
         prev.map((rating) =>
-          rating._id === ratingId
+          rating.id === ratingId
             ? { ...rating, rating: 5, comment: "Updated comment!" }
             : rating
         )
@@ -167,11 +167,9 @@ export function RatingSystem() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {booksToRate.map((book) => (
                   <Card
-                    key={book._id}
+                    key={book.id}
                     className={`cursor-pointer transition-all ${
-                      selectedBook?._id === book._id
-                        ? "ring-2 ring-primary"
-                        : ""
+                      selectedBook?.id === book.id ? "ring-2 ring-primary" : ""
                     }`}
                     onClick={() => setSelectedBook(book)}
                   >
@@ -246,7 +244,7 @@ export function RatingSystem() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {userRatings.map((rating) => (
-                <Card key={rating._id}>
+                <Card key={rating.id}>
                   <CardContent className="pt-6">
                     <h3 className="text-lg font-semibold">
                       {rating.book?.title || "Unknown Book"}
@@ -276,7 +274,7 @@ export function RatingSystem() {
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => handleEditRating(rating._id)}
+                      onClick={() => handleEditRating(rating.id)}
                     >
                       Edit Rating
                     </Button>

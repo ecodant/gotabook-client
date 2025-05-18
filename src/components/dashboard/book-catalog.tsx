@@ -8,21 +8,24 @@ import { StarRating } from "./star-rating";
 import { loanService } from "@/services/loanService";
 import { bookService } from "@/services/bookService";
 import { useAuth } from "@/hooks/useAuth";
-import { Book } from "@/lib/types";
+import { Book, Loan } from "@/lib/types";
 import { ratingService } from "@/services/ratingService";
 
 export function BookCatalog() {
   const { currentUser } = useAuth();
   const [books, setBooks] = useState<Book[]>([]);
   const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
+  const [userLoans, setUserLoans] = useState<Loan[]>([]); // Store user's loans
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchBooks = async () => {
+    const fetchBooksAndLoans = async () => {
       try {
         setLoading(true);
+
+        // Fetch all books
         const allBooks = await bookService.getAllBooks();
         const processedBooks = allBooks
           .filter((book) => book && book.id) // Ensure valid books
@@ -30,18 +33,24 @@ export function BookCatalog() {
             ...book,
             averageRating: book.averageRating ?? 0,
           }));
-        console.log("Fetched books:", processedBooks); // Debugging line
+
         setBooks(processedBooks);
         setFilteredBooks(processedBooks);
+
+        // Fetch user's loans
+        if (currentUser) {
+          const loans = await loanService.getUserLoans(currentUser.id);
+          setUserLoans(loans);
+        }
       } catch (error) {
-        console.error("Failed to fetch books:", error);
+        console.error("Failed to fetch books or loans:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBooks();
-  }, []);
+    fetchBooksAndLoans();
+  }, [currentUser]);
 
   useEffect(() => {
     if (!loading) {
@@ -63,19 +72,35 @@ export function BookCatalog() {
     }
   }, [searchTerm, categoryFilter, books, loading]);
 
-  const handleRequestLoan = async (bookId: string) => {
+  const handleRequestLoan = async (bookId: string, bookTitle: string) => {
     try {
       if (!currentUser) throw new Error("User not logged in");
 
       const userId = currentUser.id;
 
-      // Fetch the book details
-      const book = await bookService.getBookById(bookId);
+      // Create a loan via the API
+      const newLoan = await loanService.requestLoan({
+        bookId,
+        userId,
+        bookTitle,
+      });
 
-      if (book.status === "AVAILABLE") {
-        // Create a loan with status "BORROWED"
-        await loanService.requestLoan({ bookId, userId });
+      if (newLoan.status === "WAITING") {
+        // Fetch the loan queue from the API
+        const loanQueue = await loanService.getLoanQueue(bookId);
 
+        // Update the user's priority queue with the fetched data
+        setUserLoans((prevLoans) => [
+          ...prevLoans,
+          { ...newLoan, queue: loanQueue },
+        ]);
+
+        alert(
+          `You have been added to the waiting list for this book. Your position in the queue is ${
+            loanQueue.findIndex((entry) => entry.userId === userId) + 1
+          }.`
+        );
+      } else if (newLoan.status === "ACTIVE") {
         // Update book status locally
         setBooks((prevBooks) =>
           prevBooks.map((b) =>
@@ -84,8 +109,6 @@ export function BookCatalog() {
         );
 
         alert("Book borrowed successfully!");
-      } else {
-        alert("Book is not available for borrowing.");
       }
     } catch (error) {
       console.error("Error requesting loan:", error);
@@ -207,10 +230,13 @@ export function BookCatalog() {
                   Rate
                 </Button>
                 <Button
-                  disabled={book.status !== "AVAILABLE"}
-                  onClick={() => handleRequestLoan(book.id)}
+                  disabled={userLoans.some(
+                    (loan) =>
+                      loan.bookId === book.id && loan.status === "ACTIVE"
+                  )}
+                  onClick={() => handleRequestLoan(book.id, book.title)}
                 >
-                  {book.status === "AVAILABLE" ? "Borrow" : "Unavailable"}
+                  {book.status === "AVAILABLE" ? "Borrow" : "Join Waitlist"}
                 </Button>
               </CardFooter>
             </Card>

@@ -3,7 +3,6 @@ import { loanService } from "@/services/loanService";
 import { bookService } from "@/services/bookService";
 import { Book } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
-
 interface WaitlistEntry {
   book: Book;
   position: number;
@@ -30,18 +29,12 @@ const UserWaitlists = () => {
         const entries: WaitlistEntry[] = [];
 
         for (const loan of waitingLoans) {
-          // Fetch all loans for the book
-          const allLoans = await loanService.getAllLoans();
-          const bookLoans = allLoans.filter((l) => l.bookId === loan.bookId);
-
-          // Sort loans by loanDate (FIFO)
-          bookLoans.sort(
-            (a, b) =>
-              new Date(a.loanDate).getTime() - new Date(b.loanDate).getTime()
-          );
+          // Fetch the loan queue for the book
+          const loanQueue = await loanService.getLoanQueue(loan.bookId);
 
           // Determine the position of the current user's loan in the queue
-          const position = bookLoans.findIndex((l) => l.id === loan.id) + 1;
+          const position =
+            loanQueue.findIndex((entry) => entry.userId === currentUser.id) + 1;
 
           // Fetch book details
           const book = await bookService.getBookById(loan.bookId);
