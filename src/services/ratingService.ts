@@ -24,7 +24,7 @@ export const ratingService = {
 
   updateRating: async (
     id: string,
-    ratingData: Partial<RatingUpdateInput>
+    ratingData: RatingUpdateInput
   ): Promise<Rating> => {
     const response = await api.put(`/api/ratings/${id}`, ratingData);
     return response.data;

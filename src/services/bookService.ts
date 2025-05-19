@@ -13,7 +13,7 @@ export const bookService = {
   },
 
   createBook: async (bookData: BookCreateInput): Promise<Book> => {
-    const response = await api.post("/api/books", bookData);
+    const response = await api.post("/api/books/", bookData);
     return response.data;
   },
 

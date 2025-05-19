@@ -9,6 +9,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { ratingService } from "@/services/ratingService";
 import { loanService } from "@/services/loanService";
 import { bookService } from "@/services/bookService";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 export function RatingSystem() {
   const { currentUser } = useAuth();
@@ -21,6 +30,15 @@ export function RatingSystem() {
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [ratingValue, setRatingValue] = useState(0);
   const [comment, setComment] = useState("");
+  const { toast } = useToast();
+
+  // State for edit dialog
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingRating, setEditingRating] = useState<
+    (Rating & { book?: Book }) | null
+  >(null);
+  const [editRatingValue, setEditRatingValue] = useState(0);
+  const [editComment, setEditComment] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,6 +81,11 @@ export function RatingSystem() {
         setBooksToRate(unratedBooks);
       } catch (error) {
         console.error("Error fetching data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch data. Please try again later.",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -73,7 +96,11 @@ export function RatingSystem() {
 
   const handleSubmitRating = async () => {
     if (!selectedBook || ratingValue === 0 || !currentUser?.id) {
-      alert("Please select a book and provide a rating");
+      toast({
+        title: "Error",
+        description: "Please select a book and provide a rating.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -104,41 +131,65 @@ export function RatingSystem() {
       setRatingValue(0);
       setComment("");
 
-      alert("Rating submitted successfully!");
+      toast({
+        title: "Success",
+        description: "Rating submitted successfully!",
+      });
     } catch (error) {
       console.error("Error submitting rating:", error);
-      alert(
-        `Error: ${
-          error instanceof Error ? error.message : "Failed to submit rating"
-        }`
-      );
+      toast({
+        title: "Error",
+        description: "Failed to submit rating. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleEditRating = async (ratingId: string) => {
+  const openEditDialog = (rating: Rating & { book?: Book }) => {
+    setEditingRating(rating);
+    setEditRatingValue(rating.rating);
+    setEditComment(rating.comment || "");
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditRating = async () => {
+    if (!editingRating) return;
+
     try {
-      const updatedRating = await ratingService.updateRating(ratingId, {
-        rating: 5,
-        comment: "Updated comment!",
+      // Update the rating via the API with only the fields that can be changed
+      const updatedRating = await ratingService.updateRating(editingRating.id, {
+        rating: editRatingValue,
+        comment: editComment || undefined,
       });
 
-      // Update rating locally
+      // Update the userRatings state with the new data
       setUserRatings((prev) =>
         prev.map((rating) =>
-          rating.id === ratingId
-            ? { ...rating, rating: 5, comment: "Updated comment!" }
+          rating.id === editingRating.id
+            ? {
+                ...rating,
+                rating: editRatingValue,
+                comment: editComment || undefined,
+              }
             : rating
         )
       );
 
-      alert("Rating updated successfully!");
+      toast({
+        title: "Success",
+        description: "Rating updated successfully!",
+      });
+
+      // Close dialog and reset state
+      setIsEditDialogOpen(false);
+      setEditingRating(null);
     } catch (error) {
       console.error("Error updating rating:", error);
-      alert(
-        `Error: ${
-          error instanceof Error ? error.message : "Failed to update rating"
-        }`
-      );
+      toast({
+        title: "Error",
+        description: "Failed to update rating. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -274,7 +325,7 @@ export function RatingSystem() {
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => handleEditRating(rating.id)}
+                      onClick={() => openEditDialog(rating)}
                     >
                       Edit Rating
                     </Button>
@@ -285,6 +336,48 @@ export function RatingSystem() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Edit Rating Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Rating</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <h3 className="text-lg font-semibold">
+              {editingRating?.book?.title || "Unknown Book"}
+            </h3>
+
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <StarRating
+                  rating={editRatingValue}
+                  onRatingChange={setEditRatingValue}
+                  maxRating={5}
+                />
+                <span className="ml-2 text-sm">{editRatingValue} stars</span>
+              </div>
+
+              <Textarea
+                placeholder="Write your review (optional)"
+                value={editComment}
+                onChange={(e) => setEditComment(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleEditRating} disabled={editRatingValue === 0}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

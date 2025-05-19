@@ -2,7 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import AuthPage from "./authentication/AuthenticationSection";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { Dashboard } from "./app/dashboard/page";
+import { Dashboard } from "./app/dashboard-reader/page";
+import { DashboardAdmin } from "./app/dashboard-admin/page";
 import { AuthContext } from "./components/context/AuthContext";
 import { User, UserLoginInput } from "./lib/types";
 import { useCallback, useEffect, useState } from "react";
@@ -88,6 +89,14 @@ export default function App() {
     initializeSession();
   }, [fetchusers]);
 
+  // Determine which dashboard to render based on user role
+  const DashboardComponent = () => {
+    if (currentUser.role === "ADMIN") {
+      return <DashboardAdmin />;
+    }
+    return <Dashboard />;
+  };
+
   return (
     <BrowserRouter>
       <AuthContext.Provider
@@ -109,7 +118,7 @@ export default function App() {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <DashboardComponent />
               </ProtectedRoute>
             }
           />
