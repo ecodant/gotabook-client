@@ -10,6 +10,7 @@ export const UserSchema = BaseSchema.extend({
   email: z.string().email(),
   password: z.string(),
   role: z.enum(["READER", "ADMIN"]),
+  friends: z.array(z.string()).optional().default([]),
   registrationDate: z.coerce.date(),
 });
 
