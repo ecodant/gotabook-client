@@ -15,20 +15,40 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { User, Loan } from "@/lib/types";
+import { User, Rating, Book } from "@/lib/types";
 import { userService } from "@/services/userService";
-import { RefreshCw, Download, Info } from "lucide-react";
-import api from "@/services/api";
+import { ratingService } from "@/services/ratingService";
+import { bookService } from "@/services/bookService";
+import { RefreshCw, Info } from "lucide-react";
+import ForceGraph2D from "react-force-graph-2d";
 
-// This would require a D3.js or similar library for visualization
-// For simplicity, we'll create a placeholder component that would integrate with a visualization library
+interface GraphNode {
+  id: string;
+  name: string;
+  val: number;
+  group: number;
+}
+
+interface GraphLink {
+  source: string;
+  target: string;
+  value: number;
+}
+
+interface GraphData {
+  nodes: GraphNode[];
+  links: GraphLink[];
+}
 
 export function AffinityGraph() {
   const [users, setUsers] = useState<User[]>([]);
-  const [loans, setLoans] = useState<Loan[]>([]);
+  const [ratings, setRatings] = useState<(Rating & { book?: Book })[]>([]);
   const [loading, setLoading] = useState(true);
-  const [graphType, setGraphType] = useState("force"); // force, chord, heatmap
-  const [threshold, setThreshold] = useState("2"); // Minimum number of shared books
+  const [similarityThreshold, setSimilarityThreshold] = useState("0.8");
+  const [graphData, setGraphData] = useState<GraphData>({
+    nodes: [],
+    links: [],
+  });
   const graphRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -37,24 +57,42 @@ export function AffinityGraph() {
   }, []);
 
   useEffect(() => {
-    if (!loading && users.length > 0 && loans.length > 0) {
-      renderGraph();
+    if (!loading && users.length > 0 && ratings.length > 0) {
+      generateGraphData();
     }
-  }, [loading, graphType, threshold]);
+  }, [loading, similarityThreshold]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
 
-      // Fetch users
       const usersData = await userService.getAllUsers();
       const usersList = Array.isArray(usersData) ? usersData : [usersData];
-      setUsers(usersList.filter((user) => user.role === "READER"));
+      const readerUsers = usersList.filter((user) => user.role === "READER");
+      setUsers(readerUsers);
 
-      // In a real implementation, you'd need an API to fetch all loans
-      // For demonstration purposes, let's assume we have a method to get all loans
-      const loansData = await api.get("/api/loans");
-      setLoans(loansData.data);
+      const allRatings: Rating[] = [];
+      for (const user of readerUsers) {
+        const userRatings = await ratingService.getRatingsByUserId(user.id);
+        allRatings.push(...userRatings);
+      }
+
+      const uniqueRatings = Array.from(
+        new Map(allRatings.map((rating) => [rating.id, rating])).values()
+      );
+
+      const ratingsWithBooks = await Promise.all(
+        uniqueRatings.map(async (rating) => {
+          try {
+            const book = await bookService.getBookById(rating.bookId);
+            return { ...rating, book };
+          } catch {
+            return rating;
+          }
+        })
+      );
+
+      setRatings(ratingsWithBooks);
     } catch (error) {
       console.error("Error fetching data for affinity graph:", error);
       toast({
@@ -68,41 +106,68 @@ export function AffinityGraph() {
     }
   };
 
-  const renderGraph = () => {
-    if (!graphRef.current) return;
+  const calculateSimilarity = (userId1: string, userId2: string) => {
+    const user1Ratings = ratings.filter((r) => r.userId === userId1);
+    const user2Ratings = ratings.filter((r) => r.userId === userId2);
 
-    // Clear previous graph
-    graphRef.current.innerHTML = "";
+    if (user1Ratings.length === 0 || user2Ratings.length === 0) return 0;
 
-    // In a real implementation, this is where you would use D3.js or a similar library
-    // to render the actual graph visualization based on the data
+    const user1Books = new Map(user1Ratings.map((r) => [r.bookId, r]));
+    const commonRatings: { book: string; rating1: number; rating2: number }[] =
+      [];
 
-    // For this example, we'll just display a placeholder message
-    const placeholder = document.createElement("div");
-    placeholder.className =
-      "flex flex-col items-center justify-center h-[400px] bg-muted/30 rounded-md";
-    placeholder.innerHTML = `
-      <div class="text-center p-6">
-        <p class="text-lg font-semibold mb-2">Reader Affinity Graph Visualization</p>
-        <p class="text-sm text-muted-foreground mb-4">
-          This would display a ${graphType} diagram showing connections between users who borrowed similar books.
-          Current threshold: ${threshold} shared books.
-        </p>
-        <p class="text-xs text-muted-foreground">
-          Data loaded: ${users.length} readers, ${loans.length} loan records.
-        </p>
-      </div>
-    `;
+    user2Ratings.forEach((r2) => {
+      const r1 = user1Books.get(r2.bookId);
+      if (r1) {
+        commonRatings.push({
+          book: r2.bookId,
+          rating1: r1.rating,
+          rating2: r2.rating,
+        });
+      }
+    });
 
-    graphRef.current.appendChild(placeholder);
+    if (commonRatings.length === 0) return 0;
+
+    let totalDiff = 0;
+    for (const item of commonRatings) {
+      totalDiff += Math.abs(item.rating1 - item.rating2);
+    }
+
+    const avgDiff = totalDiff / commonRatings.length;
+    const maxDiff = 4;
+    const similarity = 1 - avgDiff / maxDiff;
+
+    return similarity * Math.min(1, commonRatings.length / 3);
   };
 
-  const handleDownloadGraph = () => {
-    // In a real implementation, this would generate an SVG or PNG of the visualization
-    toast({
-      title: "Feature not implemented",
-      description: "Graph download functionality would be implemented here.",
-    });
+  const generateGraphData = () => {
+    const threshold = parseFloat(similarityThreshold);
+
+    const nodes: GraphNode[] = users.map((user, idx) => ({
+      id: user.id,
+      name: user.username,
+      val: 1 + ratings.filter((r) => r.userId === user.id).length / 5,
+      group: idx % 5,
+    }));
+
+    const links: GraphLink[] = [];
+
+    for (let i = 0; i < users.length; i++) {
+      for (let j = i + 1; j < users.length; j++) {
+        const similarity = calculateSimilarity(users[i].id, users[j].id);
+
+        if (similarity >= threshold) {
+          links.push({
+            source: users[i].id,
+            target: users[j].id,
+            value: similarity * 10,
+          });
+        }
+      }
+    }
+
+    setGraphData({ nodes, links });
   };
 
   return (
@@ -111,82 +176,108 @@ export function AffinityGraph() {
         <CardHeader>
           <CardTitle>Reader Affinity Analysis</CardTitle>
           <CardDescription>
-            Visualize relationships between readers based on similar book
-            preferences
+            Visualize relationships between readers based on similar book rating
+            patterns
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="space-y-2 flex-1">
-              <label className="text-sm font-medium">Visualization Type</label>
-              <Select value={graphType} onValueChange={setGraphType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select visualization type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="force">Force-Directed Graph</SelectItem>
-                  <SelectItem value="chord">Chord Diagram</SelectItem>
-                  <SelectItem value="heatmap">Heatmap</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2 flex-1">
               <label className="text-sm font-medium">
                 Similarity Threshold
               </label>
-              <Select value={threshold} onValueChange={setThreshold}>
+              <Select
+                value={similarityThreshold}
+                onValueChange={setSimilarityThreshold}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select threshold" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">1+ Shared Books</SelectItem>
-                  <SelectItem value="2">2+ Shared Books</SelectItem>
-                  <SelectItem value="3">3+ Shared Books</SelectItem>
-                  <SelectItem value="5">5+ Shared Books</SelectItem>
+                  <SelectItem value="0.6">Low (60% similarity)</SelectItem>
+                  <SelectItem value="0.7">Medium (70% similarity)</SelectItem>
+                  <SelectItem value="0.8">High (80% similarity)</SelectItem>
+                  <SelectItem value="0.9">
+                    Very High (90% similarity)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="flex items-end gap-2">
+            <div className="flex items-end">
               <Button variant="outline" onClick={fetchData} disabled={loading}>
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleDownloadGraph}
-                disabled={loading}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export
+                Refresh Data
               </Button>
             </div>
           </div>
 
-          {loading ? (
-            <div className="flex items-center justify-center h-[400px] bg-muted/20 rounded-md">
-              <p>Loading affinity data...</p>
-            </div>
-          ) : (
-            <div className="border rounded-md">
-              <div ref={graphRef} className="h-[500px] w-full"></div>
-            </div>
-          )}
+          <div
+            ref={graphRef}
+            className="border rounded-md"
+            style={{ height: "600px" }}
+          >
+            {loading ? (
+              <div className="flex items-center justify-center h-full bg-muted/20">
+                <p>Loading affinity data...</p>
+              </div>
+            ) : graphData.nodes.length > 0 ? (
+              <ForceGraph2D
+                graphData={graphData}
+                nodeLabel={(node) => {
+                  const typedNode = node as GraphNode;
+                  const userRatingsCount = ratings.filter(
+                    (r) => r.userId === typedNode.id
+                  ).length;
+                  return `${
+                    typedNode.name || "Unknown"
+                  } (${userRatingsCount} ratings)`;
+                }}
+                linkLabel={(link) =>
+                  `Similarity: ${(link.value / 10).toFixed(2)}`
+                }
+                nodeRelSize={6}
+                nodeAutoColorBy="group"
+                linkWidth={(link) => Math.sqrt(link.value)}
+                linkDirectionalArrowLength={0}
+                cooldownTicks={100}
+                onNodeHover={(node) => {
+                  if (graphRef.current) {
+                    graphRef.current.style.cursor = node
+                      ? "pointer"
+                      : "default";
+                  }
+                }}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full bg-muted/20">
+                <p>
+                  No significant relationships found at the current threshold.
+                </p>
+              </div>
+            )}
+          </div>
 
           <div className="mt-4 p-4 bg-muted/20 rounded-md flex items-start gap-3">
             <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
             <div>
               <p className="text-sm text-muted-foreground">
                 This visualization shows connections between library users based
-                on their borrowing patterns. Users who borrow similar books are
-                placed closer together, with the thickness of connections
-                indicating the strength of their shared interests.
+                on similar rating patterns. Users who rate the same books with
+                similar scores are connected, with thicker lines indicating
+                stronger similarity.
               </p>
               <p className="text-sm text-muted-foreground mt-2">
-                Use this graph to identify reader communities, recommend books
-                to similar readers, or make collection development decisions
-                based on user clusters.
+                <strong>How to use:</strong> Hover over a node to see user
+                details. Nodes represent users, and connections represent
+                similar rating patterns. Adjust the similarity threshold to see
+                stronger or weaker connections.
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                <strong>Data loaded:</strong> {users.length} users,{" "}
+                {ratings.length} ratings, {graphData.links.length} connections
+                found at {parseFloat(similarityThreshold) * 100}% similarity
+                threshold.
               </p>
             </div>
           </div>
