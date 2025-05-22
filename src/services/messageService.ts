@@ -3,7 +3,7 @@ import api from "./api";
 
 export const messageService = {
   sendMessage: async (messageData: MessageCreateInput): Promise<Message> => {
-    const response = await api.post("/api/messages", messageData);
+    const response = await api.post("/api/messages/", messageData);
     return response.data;
   },
 
@@ -23,7 +23,7 @@ export const messageService = {
   },
 
   markAsRead: async (messageId: string): Promise<Message> => {
-    const response = await api.get(`/api/messages/read/${messageId}`);
+    const response = await api.put(`/api/messages/read/${messageId}`);
     return response.data;
   },
 

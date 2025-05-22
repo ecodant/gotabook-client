@@ -101,6 +101,7 @@ export type Message = z.infer<typeof MessageSchema>;
 // Input types for Message operations
 export type MessageCreateInput = {
   receiverId: string;
+  senderId: string;
   content: string;
 };
 
