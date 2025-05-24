@@ -21,7 +21,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Eye, Trash, Search, RefreshCw } from "lucide-react";
+import { Eye, Trash, Search, RefreshCw, Copy, Check } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
@@ -30,6 +36,7 @@ export function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -72,6 +79,31 @@ export function UserManagement() {
         variant: "destructive",
       });
     }
+  };
+
+  const copyToClipboard = (id: string) => {
+    navigator.clipboard.writeText(id).then(
+      () => {
+        setCopiedId(id);
+        toast({
+          title: "ID Copied",
+          description: "User ID copied to clipboard",
+        });
+
+        // Reset the copied state after 2 seconds
+        setTimeout(() => {
+          setCopiedId(null);
+        }, 2000);
+      },
+      (err) => {
+        console.error("Could not copy text: ", err);
+        toast({
+          title: "Copy failed",
+          description: "Failed to copy ID to clipboard",
+          variant: "destructive",
+        });
+      }
+    );
   };
 
   const openViewDialog = (user: User) => {
@@ -123,6 +155,7 @@ export function UserManagement() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>ID</TableHead>
                 <TableHead>Username</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
@@ -133,13 +166,36 @@ export function UserManagement() {
             <TableBody>
               {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-10">
+                  <TableCell colSpan={6} className="text-center py-10">
                     No users found.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredUsers.map((user) => (
                   <TableRow key={user.id}>
+                    <TableCell>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => copyToClipboard(user.id)}
+                              className="h-8 w-8"
+                            >
+                              {copiedId === user.id ? (
+                                <Check className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Copy user ID</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
                     <TableCell className="font-medium">
                       {user.username}
                     </TableCell>
@@ -158,6 +214,7 @@ export function UserManagement() {
                     <TableCell>
                       {new Date(user.registrationDate).toLocaleDateString()}
                     </TableCell>
+
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button
