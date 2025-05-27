@@ -23,7 +23,7 @@ export function Dashboard() {
     <div className="flex flex-col min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container flex items-center justify-between h-16 px-4">
-          <h1 className="text-2xl font-bold">Digital Library</h1>
+          <h1 className="text-2xl font-bold">GotaBook Library</h1>
           <Button variant="ghost" size="icon" onClick={handleLogout}>
             <LogOut className="h-5 w-5" />
             <span className="sr-only">Logout</span>

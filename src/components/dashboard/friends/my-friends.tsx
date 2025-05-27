@@ -60,7 +60,7 @@ export function MyFriends({ loading, myFriends }: MyFriendsProps) {
                 <div>
                   <CardTitle className="text-lg">{friend.username}</CardTitle>
                   <CardDescription>
-                    Friend since{" "}
+                    Member since{" "}
                     {new Date(friend.registrationDate).toLocaleDateString()}
                   </CardDescription>
                 </div>
