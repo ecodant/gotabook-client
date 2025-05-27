@@ -248,6 +248,47 @@ export function AffinityGraph() {
                       : "default";
                   }
                 }}
+                nodeCanvasObject={(node, ctx, globalScale) => {
+                  const typedNode = node as GraphNode;
+                  const label = typedNode.name;
+                  const fontSize = 12 / globalScale;
+                  const nodeSize = 6 * Math.sqrt(typedNode.val || 1);
+
+                  // node circle
+                  ctx.beginPath();
+                  ctx.arc(node.x || 0, node.y || 0, nodeSize, 0, 2 * Math.PI);
+                  ctx.fillStyle = node.color as string;
+                  ctx.fill();
+
+                  //  text label
+                  ctx.font = `${fontSize}px Sans-Serif`;
+                  ctx.textAlign = "center";
+                  ctx.textBaseline = "middle";
+                  ctx.fillStyle = "black";
+
+                  // white background to text for better readability
+                  const textWidth = ctx.measureText(label).width;
+                  const bckgDimensions = [textWidth, fontSize].map(
+                    (n) => n + fontSize * 0.5
+                  );
+
+                  ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+                  ctx.fillRect(
+                    (node.x || 0) - bckgDimensions[0] / 2,
+                    (node.y || 0) - bckgDimensions[1] / 2 + nodeSize + fontSize,
+                    bckgDimensions[0],
+                    bckgDimensions[1]
+                  );
+
+                  // Draw the text
+                  ctx.fillStyle = "black";
+                  ctx.fillText(
+                    label,
+                    node.x || 0,
+                    (node.y || 0) + nodeSize + fontSize
+                  );
+                }}
+                nodeCanvasObjectMode={() => "after"}
               />
             ) : (
               <div className="flex items-center justify-center h-full bg-muted/20">
